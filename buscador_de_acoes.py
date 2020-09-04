@@ -1,12 +1,6 @@
 from selenium import webdriver
-from selenium.common.exceptions import *
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 import requests
-import time
 import json
 import os
 import random
@@ -21,19 +15,7 @@ class Telegram_bot:
         chrome_options.add_argument('--disable-dev-shm-usage')
         chrome_options.add_argument('--no-sandbox')
 
-        self.driver = webdriver.Chrome(
-            executable_path=chromedriver_caminho)
-
-        self.wait = WebDriverWait(
-            driver=self.driver,
-            timeout=6,
-            poll_frequency=1,
-            ignored_exceptions=[
-                NoSuchElementException,
-                ElementNotVisibleException,
-                ElementNotSelectableException]
-        )
-        
+        self.driver = webdriver.Chrome(executable_path=chromedriver_caminho)
         self.url_base = f'https://api.telegram.org/bot{TOKEN}/'
 
     def iniciar(self):
@@ -68,25 +50,11 @@ class Telegram_bot:
                 f'https://www.google.com/search?q={mensagem}')
             if primeira_mensagem == True or mensagem:
                 try:
-                    nome_acao = self.wait.until(
-                        EC.element_to_be_clickable(
-                            (By.XPATH, '//div[@class="E65Bx"]')
-                        )
-                    )
-                    preco = self.wait.until(
-                        EC.element_to_be_clickable(
-                            (By.XPATH,
-                            '//span[@jscontroller="q6ctOd"]')
-                        )
-                    )
+                    nome_acao = self.driver.find_element_by_xpath('//div[@class="E65Bx"]')
+                    preco = self.driver.find_element_by_xpath('//span[@jscontroller="q6ctOd"]')
                     return f"Empresa: {nome_acao.text}\nPreço: {preco.text}"
                 except:
-                    aleatorio = self.wait.until(
-                        EC.element_to_be_clickable(
-                            (By.XPATH,
-                            '//h3[@class="LC20lb DKV0Md"]')
-                        )
-                    )
+                    aleatorio = self.driver.find_element_by_xpath('//h3[@class="LC20lb DKV0Md"]')
                     return f"Não encontrei essa ação. :/\nSó achei isso: {aleatorio.text}"
                 else:
                     return f"Não encontrei essa ação. :/"
