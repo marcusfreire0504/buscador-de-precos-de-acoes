@@ -1,0 +1,105 @@
+from selenium import webdriver
+from selenium.common.exceptions import *
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+import requests
+import time
+import json
+import os
+import random
+
+class Telegram_bot:
+    def __init__(self):
+        chrome_options = Options()
+        chrome_options.binary_location = os.environ.get('GOOGLE_CHROME_BIN')
+        chromedriver_caminho = os.environ.get('CHROMEDRIVE_PATH')
+        # Configurando para rodar no heroku
+        chrome_options.add_argument('--headless')
+        chrome_options.add_argument('--disable-dev-shm-usage')
+        chrome_options.add_argument('--no-sandbox')
+
+        self.driver = webdriver.Chrome(
+            executable_path=chromedriver_caminho)
+
+        self.wait = WebDriverWait(
+            driver=self.driver,
+            timeout=6,
+            poll_frequency=1,
+            ignored_exceptions=[
+                NoSuchElementException,
+                ElementNotVisibleException,
+                ElementNotSelectableException]
+        )
+        
+        self.url_base = f'https://api.telegram.org/bot{TOKEN}/'
+
+    def iniciar(self):
+        update_id = None
+        while True:
+            atualizacao = self.obter_mensagens(update_id)
+            print(atualizacao)
+            mensagens = atualizacao['result']
+            if mensagens:
+                for mensagem in mensagens:
+                    update_id = mensagem['update_id']
+                    print(update_id)
+                    chat_id = mensagem['message']['from']['id']
+                    print(chat_id)
+                    primeira_mensagem = mensagem['message']['message_id'] == 1
+                    print(primeira_mensagem)
+                    resposta = self.criar_resposta(mensagem, primeira_mensagem)
+
+                    self.responder(resposta, chat_id)
+    
+    def obter_mensagens(self, update_id):
+        link_requisicao = f'{self.url_base}getUpdates?timeout=100'
+        if update_id:
+            link_requisicao = f'{link_requisicao}&offset={update_id + 1}'
+        resultado = requests.get(link_requisicao)
+        return json.loads(resultado.content)
+
+    def criar_resposta(self, mensagem, primeira_mensagem):
+        try:
+            mensagem = mensagem['message']['text']
+            self.driver.get(
+                f'https://www.google.com/search?q={mensagem}')
+            if primeira_mensagem == True or mensagem:
+                try:
+                    nome_acao = self.wait.until(
+                        EC.element_to_be_clickable(
+                            (By.XPATH, '//div[@class="E65Bx"]')
+                        )
+                    )
+                    preco = self.wait.until(
+                        EC.element_to_be_clickable(
+                            (By.XPATH,
+                            '//span[@jscontroller="q6ctOd"]')
+                        )
+                    )
+                    return f"Empresa: {nome_acao.text}\nPreço: {preco.text}"
+                except:
+                    aleatorio = self.wait.until(
+                        EC.element_to_be_clickable(
+                            (By.XPATH,
+                            '//h3[@class="LC20lb DKV0Md"]')
+                        )
+                    )
+                    return f"Não encontrei essa ação. :/\nSó achei isso: {aleatorio.text}"
+                else:
+                    return f"Não encontrei essa ação. :/"
+        except:
+            numero = random.randint(0, 4)
+            respostas = ['Mas rapaz que isso eim', 'Pesquisa por ações', 
+                        'HAHA o que você mandou ai eim ? ', 'Me tira daqui. Estou preso aquiiiiii',
+                        'Investir é bom né']
+            return f"{respostas[numero]} "
+        
+    def responder(self, resposta, chat_id):
+        link_de_envio = f'{self.url_base}sendMessage?chat_id={chat_id}&text={resposta}'
+        requests.get(link_de_envio)
+        
+bot = Telegram_bot()
+bot.iniciar()
