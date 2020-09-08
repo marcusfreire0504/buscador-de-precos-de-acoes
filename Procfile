@@ -1,1 +1,0 @@
-worker: python buscador_de_acoes.py
